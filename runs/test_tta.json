@@ -1,11 +1,11 @@
 {
   "ckpt_path": "./runs\\best_model.pt",
-  "ckpt_epoch": 17,
+  "ckpt_epoch": 22,
   "tta": true,
   "metrics": {
-    "test_loss": 2.2466109263093745,
-    "test_acc": 0.7405731535065767,
-    "test_top5": 0.9381598790666457,
-    "test_ce": 2.2466109263093745
+    "test_loss": 1.6387365263665685,
+    "test_acc": 0.8021638330757341,
+    "test_top5": 0.9474497681607419,
+    "test_ce": 1.6387365263665685
   }
 }

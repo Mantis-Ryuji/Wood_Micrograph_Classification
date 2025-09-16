@@ -203,7 +203,7 @@ class WoodH5(Dataset):
 # Sampler（クラス不均衡対策）
 # =========================================================
 
-def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: float = 0.5) -> WeightedRandomSampler:
+def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: float = 0.25) -> WeightedRandomSampler:
     """
     alpha=1.0 → 完全バランス (1 / count)
     alpha=0.0 → 分布そのまま (weight=1)
@@ -229,7 +229,7 @@ def split_by_individual_stratified(
     df: pd.DataFrame,
     ratios=(0.8, 0.1, 0.1),
     seed: int = 42,
-    rare_min_images: int = 3,  # 画像枚数がこの閾値未満の species をレア扱い（train専属）
+    rare_min_images: int = 5,  # 画像枚数がこの閾値未満の species をレア扱い（train専属）
 ):
     """
     個体ID単位で train/val/test に分割（リーク防止）。
