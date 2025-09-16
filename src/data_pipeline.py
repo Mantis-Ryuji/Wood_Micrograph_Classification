@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-import random
 from typing import Any, Dict, List, Optional, Tuple
 
 import h5py
@@ -24,6 +22,11 @@ def build_label_map(df: pd.DataFrame) -> Dict[str, int]:
 
 
 def expand_split(split_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    1行が「HDF5内の1データセット（[N,H,W]）とその総枚数 n_images」を表すCSVを、
+    画像単位（idx_in_ds を持つ）に展開する。
+    必須列: dataset_path, n_images, species, individual_id
+    """
     rows: List[Dict[str, Any]] = []
     for _, r in split_df.iterrows():
         n = int(r["n_images"])
@@ -84,8 +87,68 @@ class RandomFlip90(nn.Module):
         return x
 
 
+class RandomScaleJitter(nn.Module):
+    """目標サイズまわりでのスケール・ジッタ。常に size×size を返す。
+
+    s ~ U(min_scale, max_scale) を引き、round(size*s) に一旦リサイズ。
+    ・大きくなった場合: 中央クロップで size に戻す
+    ・小さくなった場合: リフレクトパディングで size に拡張
+    """
+    def __init__(self, size: int, min_scale: float = 0.85, max_scale: float = 1.15):
+        super().__init__()
+        self.size = int(size)
+        self.min_scale = float(min_scale)
+        self.max_scale = float(max_scale)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: [C,H,W], values in [0,1]
+        s = float(torch.empty(1).uniform_(self.min_scale, self.max_scale))
+        new = max(8, int(round(self.size * s)))
+        if new != self.size:
+            x = F.interpolate(x.unsqueeze(0), size=(new, new), mode="bilinear", align_corners=False).squeeze(0)
+            if new > self.size:
+                st = (new - self.size) // 2  # center crop
+                x = x[:, st:st+self.size, st:st+self.size]
+            else:
+                pad = self.size - new       # reflect pad
+                l = pad // 2
+                r = pad - l
+                x = F.pad(x, (l, r, l, r), mode="reflect")
+        return x
+
+
+class RandomBrightnessContrast(nn.Module):
+    """明るさ/コントラストの軽いジッタ（[0,1]ドメインで適用）"""
+    def __init__(self, p: float = 0.5, gain: Tuple[float, float] = (0.9, 1.1), bias: Tuple[float, float] = (-0.05, 0.05)):
+        super().__init__()
+        self.p = float(p)
+        self.gain = (float(gain[0]), float(gain[1]))
+        self.bias = (float(bias[0]), float(bias[1]))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if torch.rand(1).item() < self.p:
+            a = float(torch.empty(1).uniform_(self.gain[0], self.gain[1]))
+            b = float(torch.empty(1).uniform_(self.bias[0], self.bias[1]))
+            x = (x * a + b).clamp_(0.0, 1.0)
+        return x
+
+
+class RandomGamma(nn.Module):
+    """ガンマ補正（1.0 を中心に軽く）"""
+    def __init__(self, p: float = 0.5, gamma: Tuple[float, float] = (0.9, 1.1)):
+        super().__init__()
+        self.p = float(p)
+        self.gamma = (float(gamma[0]), float(gamma[1]))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if torch.rand(1).item() < self.p:
+            g = float(torch.empty(1).uniform_(self.gamma[0], self.gamma[1]))
+            x = x.clamp_(0.0, 1.0).pow(g)
+        return x
+
+
 class NormalizeImagenet(nn.Module):
-    """ConvNeXt/一般 ImageNet 正規化"""
+    """ ImageNet 正規化"""
     def __init__(self):
         super().__init__()
         mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
@@ -104,7 +167,10 @@ class TrainTransform(nn.Module):
         ops: List[nn.Module] = [
             RepeatTo3(),
             RandomFlip90(0.5, 0.5, 0.75),
-            ResizeSquare(size),
+            RandomScaleJitter(size, 0.85, 1.15),                 # ★ 追加
+            RandomBrightnessContrast(0.5, (0.9, 1.1), (-0.05, 0.05)),  # ★ 追加
+            RandomGamma(0.5, (0.9, 1.1)),                        # ★ 追加
+            ResizeSquare(size),  # 念のため最終サイズを保証
         ]
         ops.append(NormalizeImagenet())
         self.ops = nn.Sequential(*ops)
@@ -134,9 +200,10 @@ class EvalTransform(nn.Module):
 class WoodH5(Dataset):
     """
     HDF5:
-      - 各 group の dataset は [N, H, W] (uint8, モノクロ)
+      - 各 group の dataset は [N, H, W] (uint8, モノクロ) もしくは [H, W]
     df_img:
-      - expand_split で画像単位へ展開済み DataFrame
+      - 画像単位へ展開済み DataFrame（idx_in_ds列がある場合）
+        または、展開前（n_images列がある場合は expand_split で展開）
     返り値:
       x: Tensor [3, S, S] (float), y: species id (long)
     """
@@ -160,7 +227,7 @@ class WoodH5(Dataset):
                          else EvalTransform(self.input_size)
 
         # lazy open per-worker
-        self._h5 = None
+        self._h5: Optional[h5py.File] = None
 
     def _ensure_h5(self):
         if self._h5 is None:
@@ -173,11 +240,20 @@ class WoodH5(Dataset):
     def __getitem__(self, i: int):
         self._ensure_h5()
         r = self.df.iloc[i]
-        ds = self._h5[r["dataset_path"]]            # [N, H, W] uint8
-        x_np = ds[int(r["idx_in_ds"])]              # [H, W] uint8
-        x = torch.from_numpy(x_np).float() / 255.0  # -> [H, W] float
-        x = x.unsqueeze(0)                          # [1, H, W]
-        x = self.transform(x)                       # [3, S, S]
+        ds = self._h5[r["dataset_path"]]  # h5py.Dataset
+
+        # [N,H,W] のときは idx_in_ds を使い、[H,W] のときは全体を読む
+        if ds.ndim == 3:
+            idx = int(r["idx_in_ds"]) if ("idx_in_ds" in r and not pd.isna(r["idx_in_ds"])) else 0
+            x_np = ds[idx]                     # -> [H,W]
+        elif ds.ndim == 2:
+            x_np = ds[()]                      # -> [H,W]
+        else:
+            raise RuntimeError(f"Unsupported HDF5 dataset ndim={ds.ndim} at '{r['dataset_path']}'")
+
+        x = torch.from_numpy(x_np).float() / 255.0  # [H,W] -> float in [0,1]
+        x = x.unsqueeze(0)                          # [1,H,W]
+        x = self.transform(x)                       # [3,S,S]
 
         y = torch.tensor(self.spe2id[r["species"]], dtype=torch.long)
         return x, y
@@ -202,7 +278,6 @@ class WoodH5(Dataset):
 # =========================================================
 # Sampler（クラス不均衡対策）
 # =========================================================
-
 def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: float = 0.25) -> WeightedRandomSampler:
     """
     alpha=1.0 → 完全バランス (1 / count)
@@ -221,10 +296,10 @@ def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: f
 
     return WeightedRandomSampler(weights=w_t, num_samples=len(w), replacement=True)
 
+
 # =========================================================
 # スプリット
 # =========================================================
-
 def split_by_individual_stratified(
     df: pd.DataFrame,
     ratios=(0.8, 0.1, 0.1),
@@ -354,6 +429,14 @@ def build_dataloaders(
     """
     返り値:
       (train_loader, val_loader, test_loader), (ds_train, ds_val, ds_test), meta
+
+    CSV 互換:
+      - 形式A（集約行）: dataset_path, n_images, species, individual_id
+          → expand_split で画像行に展開（idx_in_ds を生成）
+      - 形式B（画像行）: dataset_path, idx_in_ds, species, individual_id
+          → そのまま使用
+      - 形式C（最低限）: dataset_path, species, individual_id
+          → 暫定で idx_in_ds=0 を付与（HDF5 が [H,W] ならOK、[N,H,W] は先頭のみ）
     """
     # CSV 読み込み
     df_full = pd.read_csv(csv_path)
@@ -361,13 +444,34 @@ def build_dataloaders(
     # 分割
     train_df, val_df, test_df = split_by_individual_stratified(df_full, ratios=ratios, seed=seed)
 
+    # 画像行に展開（CSV 形式に応じて処理）
+    def _ensure_img_rows(df_part: pd.DataFrame) -> pd.DataFrame:
+        cols = set(df_part.columns)
+        need_cols = {"dataset_path", "species", "individual_id"}
+        missing = list(need_cols - cols)
+        if missing:
+            raise KeyError(f"CSV '{csv_path}' is missing required columns: {missing}")
+
+        if "idx_in_ds" in cols:
+            # すでに画像行
+            out = df_part.copy()
+            out["idx_in_ds"] = out["idx_in_ds"].fillna(0).astype(int)
+            return out
+        elif "n_images" in cols:
+            # 集約行 → 展開
+            return expand_split(df_part)
+        else:
+            # 最低限の列のみ → 暫定 idx 付与（2D データセット向け）
+            out = df_part.copy()
+            out["idx_in_ds"] = 0
+            return out
+
+    df_train_img = _ensure_img_rows(train_df)
+    df_val_img   = _ensure_img_rows(val_df)
+    df_test_img  = _ensure_img_rows(test_df)
+
     # ラベル辞書（species）
     spe2id = build_label_map(df_full)
-
-    # 画像行に展開
-    df_train_img = expand_split(train_df)
-    df_val_img   = expand_split(val_df)
-    df_test_img  = expand_split(test_df)
 
     # Dataset
     ds_train = WoodH5(h5_path, df_train_img, spe2id, input_size, train=True)

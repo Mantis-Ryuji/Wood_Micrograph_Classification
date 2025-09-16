@@ -2,47 +2,47 @@ model:
   n_species: 119
   backbone: "maxvit_tiny_rw_224"
   backbone_weights: "imagenet"
-  arcface: { s: 28.0, m: 0.15, subcenters: 3 }
+  arcface: { s: 27.0, m: 0.15, subcenters: 4 }
   use_center_loss: true
 
 data:
   h5_path: "data/WIG_v1.2.1_900.h5"
   csv_path: "data/wig_v1.2.1_index.csv"
   split: { ratios: [0.8, 0.1, 0.1], seed: 42 }
-  dataloader: { batch_size: 32, num_workers: 4, pin_memory: true }
-  input_size: 256   # 320 とか採用したかったが重い
+  dataloader: { batch_size: 24, num_workers: 4, pin_memory: true }
+  input_size: 320
   balanced_sampler: true
 
 loss:
-  label_smoothing: 0.02
-  focal_gamma: 2.0
+  label_smoothing: 0.03
+  focal_gamma: 0.0
   lambda_center: 0.0
   center_lr: 0.01
 
 training:
-  base_lr: 0.0003
+  base_lr: 0.00030
   epochs: 150
   early_stop: true
   scheduler: true
   scheduler_type: "CosineWarmRestarts"
-  scheduler_patience: 10
+  scheduler_patience: 5               # ← 早めに打ち切り
   scheduler_threshold: 0.0001
   scheduler_cooldown: 1
   scheduler_min_lr: 1e-5
 
-  weight_decay: 0.05
+  weight_decay: 0.03                  # ← acc寄せでやや軽め
   backbone_lr_mult: 0.1
-  head_lr_mult: 1.0
-  backbone_freeze_epochs: 2
+  head_lr_mult: 1.0                   # ← ヘッドを強めに
+  backbone_freeze_epochs: 1
 
-  T_0: 20
-  T_mult: 2
+  T_0: 150                            # 1サイクルCosine
+  T_mult: 1
 
-  margin_warmup_epochs: 20
+  margin_warmup_epochs: 12            # ← 早めに鋭さへ
   margin_m0: 0.15
-  margin_m1: 0.50
-  center_warmup_epochs: 15
-  center_lambda_final: 0.03
+  margin_m1: 0.52
+  center_warmup_epochs: 12
+  center_lambda_final: 0.02           # ← 過度な硬化を抑える（acc目的）
 
   monitor: "val_acc"
   monitor_mode: "max"
