@@ -1,0 +1,67 @@
+data:
+  h5_path: "data/WIG_v1.2.1_900.h5"
+  csv_path: "data/wig_v1.2.1_index.csv"
+  split:
+    ratios: [0.7, 0.2, 0.1]
+    seed: 42
+  dataloader:
+    batch_size: 32
+    num_workers: 4
+    pin_memory: true
+  input_size: 512
+  balanced_sampler: true
+
+model:
+  n_species: 119
+  facenet_pretrained: null      # 互換キー（未使用）
+  backbone: "convnextv2_tiny"
+  backbone_weights: "imagenet"
+  arcface:
+    s: 28.0
+    m: 0.15
+    subcenters: 3               # SubCenter-ArcFace
+  use_center_loss: true
+
+loss:
+  label_smoothing: 0.01
+  focal_gamma: 2.5
+  lambda_center: 0.0
+  center_lr: 0.01
+
+training:
+  base_lr: 0.0003
+  epochs: 150
+  early_stop: true
+  scheduler: true
+  scheduler_type: "CosineWarmRestarts"
+  scheduler_patience: 10             # 早停=この×2で判定（実装）
+  scheduler_threshold: 0.0001
+  scheduler_cooldown: 1
+  scheduler_min_lr: 1e-5
+
+  weight_decay: 0.03
+  backbone_lr_mult: 0.1
+  head_lr_mult: 1.0
+  backbone_freeze_epochs: 2
+
+  T_0: 20
+  T_mult: 2
+
+  margin_warmup_epochs: 20
+  margin_m0: 0.15
+  margin_m1: 0.60
+  center_warmup_epochs: 15
+  center_lambda_final: 0.03
+
+  monitor: "val_acc"
+  monitor_mode: "max"
+  verbose: true
+  out_dir: "./runs"
+  history_filename: "history.json"
+  checkpoint_name: "best_model.pt"
+  save_history: true
+  save_param: true
+
+  use_ema: true
+  ema_decay: 0.999
+  tta: false                     # 最終テスト時だけ true 推奨
