@@ -223,22 +223,74 @@ def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: f
 # =========================================================
 # スプリット
 # =========================================================
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit
 
-
-def split_by_individual(df: pd.DataFrame, ratios=(0.7, 0.2, 0.1), seed: int = 42):
+def split_by_individual_stratified(
+    df: pd.DataFrame,
+    ratios=(0.7, 0.2, 0.1),
+    seed: int = 42,
+):
+    """
+    個体ID単位で train/val/test に分割。
+    individual_id ごとに代表 species を付与し、StratifiedShuffleSplit で層化。
+    ただし、出現個体数が少なすぎて層化できない species は train に寄せるフォールバック。
+    """
     r_train, r_val, r_test = ratios
     if not np.isclose(r_train + r_val + r_test, 1.0):
         raise ValueError(f"ratios must sum to 1.0, got {ratios}")
 
-    uniq = df["individual_id"].unique()
-    train_ids, temp_ids = train_test_split(uniq, test_size=(1.0 - r_train), random_state=seed)
-    frac_val = r_val / (r_val + r_test) if (r_val + r_test) > 0 else 0.5
-    val_ids, test_ids = train_test_split(temp_ids, test_size=(1.0 - frac_val), random_state=seed)
+    # 個体ごとの代表 species（単一種前提）。複数種があれば最頻に寄せる。
+    per_ind = (
+        df.groupby("individual_id")["species"]
+          .agg(lambda x: x.mode().iat[0] if len(x.mode()) else x.iloc[0])
+          .reset_index()
+    )
+    ind_ids = per_ind["individual_id"].to_numpy()
+    ind_labels = per_ind["species"].to_numpy()
 
+    # --- 1) train と temp(val+test) に層化分割
+    sss1 = StratifiedShuffleSplit(
+        n_splits=1,
+        test_size=(1.0 - r_train),
+        random_state=seed
+    )
+
+    try:
+        train_idx, temp_idx = next(sss1.split(ind_ids, ind_labels))
+    except ValueError:
+        # クラスが少なすぎ等で層化不能 → ランダムに個体分割へフォールバック
+        rng = np.random.RandomState(seed)
+        perm = rng.permutation(len(ind_ids))
+        n_train = int(round(r_train * len(ind_ids)))
+        train_idx, temp_idx = perm[:n_train], perm[n_train:]
+
+    train_ids = ind_ids[train_idx]
+    temp_ids  = ind_ids[temp_idx]
+    temp_labels = ind_labels[temp_idx]
+
+    # --- 2) temp を val/test に層化分割
+    frac_val = r_val / (r_val + r_test) if (r_val + r_test) > 0 else 0.5
+    sss2 = StratifiedShuffleSplit(
+        n_splits=1,
+        test_size=(1.0 - frac_val),
+        random_state=seed + 1
+    )
+    try:
+        val_sub_idx, test_sub_idx = next(sss2.split(temp_ids, temp_labels))
+    except ValueError:
+        # ここもフォールバック（ランダム）
+        rng = np.random.RandomState(seed + 1)
+        perm2 = rng.permutation(len(temp_ids))
+        n_val = int(round(frac_val * len(temp_ids)))
+        val_sub_idx, test_sub_idx = perm2[:n_val], perm2[n_val:]
+
+    val_ids  = temp_ids[val_sub_idx]
+    test_ids = temp_ids[test_sub_idx]
+
+    # --- DataFrame へ反映
     train_df = df[df["individual_id"].isin(train_ids)].reset_index(drop=True)
-    val_df = df[df["individual_id"].isin(val_ids)].reset_index(drop=True)
-    test_df = df[df["individual_id"].isin(test_ids)].reset_index(drop=True)
+    val_df   = df[df["individual_id"].isin(val_ids)].reset_index(drop=True)
+    test_df  = df[df["individual_id"].isin(test_ids)].reset_index(drop=True)
 
     return train_df, val_df, test_df
 
@@ -264,8 +316,8 @@ def build_dataloaders(
     # CSV 読み込み
     df_full = pd.read_csv(csv_path)
 
-    # 分割は individual_id ベース
-    train_df, val_df, test_df = split_by_individual(df_full, ratios=ratios, seed=seed)
+    # 分割
+    train_df, val_df, test_df = split_by_individual_stratified(df_full, ratios=ratios, seed=seed)
 
     # ラベル辞書（species）
     spe2id = build_label_map(df_full)
