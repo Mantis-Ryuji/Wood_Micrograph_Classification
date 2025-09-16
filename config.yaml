@@ -13,7 +13,6 @@ data:
 
 model:
   n_species: 119
-  facenet_pretrained: null      # 互換キー（未使用）
   backbone: "convnextv2_tiny"
   backbone_weights: "imagenet"
   arcface:
