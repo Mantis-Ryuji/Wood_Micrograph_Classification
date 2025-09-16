@@ -92,6 +92,7 @@ class FaceWoodNet(nn.Module):
         n_classes: int,
         backbone: str = "convnextv2_tiny",
         backbone_weights: Optional[str] = None,  # timm pretrained tag or None
+        backbone_img_size: Optional[int] = None,
         arc_s: float = 30.0,
         arc_m: float = 0.15,
         subcenters: int = 1,
@@ -102,9 +103,10 @@ class FaceWoodNet(nn.Module):
         self.n_classes = int(n_classes)
         self.backbone_name = backbone
 
-        self.backbone = timm.create_model(backbone, pretrained=(backbone_weights is not None))
+        self.backbone = timm.create_model(backbone, pretrained=(backbone_weights is not None), img_size=backbone_img_size)
         if hasattr(self.backbone, "reset_classifier"):
             self.backbone.reset_classifier(num_classes=0, global_pool="avg")
+        
 
         self.feat_dim = feat_dim if feat_dim is not None else getattr(self.backbone, "num_features", 1024)
         self.bn = nn.BatchNorm1d(self.feat_dim, eps=1e-5, momentum=0.1, affine=True)

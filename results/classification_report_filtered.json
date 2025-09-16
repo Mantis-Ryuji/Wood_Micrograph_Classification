@@ -1,9 +1,9 @@
 {
-  "ckpt_epoch": 22,
+  "ckpt_epoch": 16,
   "min_support": 5,
   "overall": {
-    "acc_top1": 0.80370942812983,
-    "acc_top5": 0.9443585780525502
+    "acc_top1": 0.7527047913446677,
+    "acc_top5": 0.9428129829984544
   },
   "by_species": {
     "Aesculus_turbinata": {
@@ -13,9 +13,9 @@
       "support": 5.0
     },
     "Aphananthe_aspera": {
-      "precision": 1.0,
+      "precision": 0.8461538461538461,
       "recall": 1.0,
-      "f1-score": 1.0,
+      "f1-score": 0.9166666666666666,
       "support": 33.0
     },
     "Carpinus_japonica": {
@@ -25,45 +25,45 @@
       "support": 11.0
     },
     "Carpinus_tschonoskii": {
-      "precision": 1.0,
-      "recall": 0.36363636363636365,
-      "f1-score": 0.5333333333333333,
+      "precision": 0.7058823529411765,
+      "recall": 0.5454545454545454,
+      "f1-score": 0.6153846153846154,
       "support": 22.0
     },
     "Castanea_crenata": {
-      "precision": 0.9714285714285714,
+      "precision": 0.8717948717948718,
       "recall": 1.0,
-      "f1-score": 0.9855072463768116,
+      "f1-score": 0.9315068493150684,
       "support": 34.0
     },
     "Castanopsis_cuspidata": {
       "precision": 1.0,
-      "recall": 0.9024390243902439,
-      "f1-score": 0.9487179487179487,
+      "recall": 0.7560975609756098,
+      "f1-score": 0.8611111111111112,
       "support": 41.0
     },
     "Castanopsis_sieboldii": {
-      "precision": 0.8125,
+      "precision": 0.5652173913043478,
       "recall": 1.0,
-      "f1-score": 0.896551724137931,
+      "f1-score": 0.7222222222222222,
       "support": 13.0
     },
     "Celtis_sinensis": {
-      "precision": 1.0,
+      "precision": 0.8333333333333334,
       "recall": 1.0,
-      "f1-score": 1.0,
+      "f1-score": 0.9090909090909091,
       "support": 15.0
     },
     "Cinnamomum_camphora": {
       "precision": 1.0,
-      "recall": 0.9807692307692307,
-      "f1-score": 0.9902912621359223,
+      "recall": 0.9615384615384616,
+      "f1-score": 0.9803921568627451,
       "support": 52.0
     },
     "Cinnamomum_yabunikkei": {
-      "precision": 1.0,
+      "precision": 0.8333333333333334,
       "recall": 0.4,
-      "f1-score": 0.5714285714285714,
+      "f1-score": 0.5405405405405406,
       "support": 25.0
     },
     "Corylus_sieboldiana": {
@@ -73,99 +73,99 @@
       "support": 12.0
     },
     "Fagus_crenata": {
-      "precision": 1.0,
-      "recall": 0.6923076923076923,
-      "f1-score": 0.8181818181818182,
+      "precision": 0.8888888888888888,
+      "recall": 0.7692307692307693,
+      "f1-score": 0.8247422680412371,
       "support": 52.0
     },
     "Fagus_japonica": {
-      "precision": 0.4838709677419355,
-      "recall": 1.0,
-      "f1-score": 0.6521739130434783,
+      "precision": 0.45454545454545453,
+      "recall": 0.6666666666666666,
+      "f1-score": 0.5405405405405406,
       "support": 15.0
     },
     "Lithocarpus_edulis": {
-      "precision": 0.8421052631578947,
-      "recall": 1.0,
-      "f1-score": 0.9142857142857143,
+      "precision": 0.7142857142857143,
+      "recall": 0.9375,
+      "f1-score": 0.8108108108108109,
       "support": 16.0
     },
     "Litsea_coreana": {
-      "precision": 0.8,
-      "recall": 0.8,
-      "f1-score": 0.8,
+      "precision": 0.7647058823529411,
+      "recall": 0.65,
+      "f1-score": 0.7027027027027027,
       "support": 20.0
     },
     "Machilus_thunbergii": {
-      "precision": 0.9583333333333334,
+      "precision": 0.8518518518518519,
       "recall": 0.7666666666666667,
-      "f1-score": 0.8518518518518519,
+      "f1-score": 0.8070175438596491,
       "support": 30.0
     },
     "Ostrya_japonica": {
       "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
+      "recall": 0.9459459459459459,
+      "f1-score": 0.9722222222222222,
       "support": 37.0
     },
     "Quercus_acuta": {
-      "precision": 0.8333333333333334,
-      "recall": 0.45454545454545453,
-      "f1-score": 0.5882352941176471,
+      "precision": 0.6666666666666666,
+      "recall": 0.2727272727272727,
+      "f1-score": 0.3870967741935484,
       "support": 22.0
     },
     "Quercus_crispula": {
-      "precision": 0.9473684210526315,
-      "recall": 0.9818181818181818,
-      "f1-score": 0.9642857142857143,
+      "precision": 0.9574468085106383,
+      "recall": 0.8181818181818182,
+      "f1-score": 0.8823529411764706,
       "support": 55.0
     },
     "Quercus_gilva": {
-      "precision": 0.4166666666666667,
-      "recall": 0.5555555555555556,
-      "f1-score": 0.47619047619047616,
+      "precision": 0.14285714285714285,
+      "recall": 0.2222222222222222,
+      "f1-score": 0.17391304347826086,
       "support": 9.0
     },
     "Quercus_salicina": {
       "precision": 1.0,
-      "recall": 0.7368421052631579,
-      "f1-score": 0.8484848484848485,
+      "recall": 0.5789473684210527,
+      "f1-score": 0.7333333333333333,
       "support": 19.0
     },
     "Quercus_serrata": {
-      "precision": 1.0,
+      "precision": 0.7777777777777778,
       "recall": 0.7777777777777778,
-      "f1-score": 0.875,
+      "f1-score": 0.7777777777777778,
       "support": 9.0
     },
     "Quercus_variabilis": {
       "precision": 1.0,
-      "recall": 0.1111111111111111,
-      "f1-score": 0.2,
+      "recall": 0.6666666666666666,
+      "f1-score": 0.8,
       "support": 9.0
     },
     "Ulmus_davidiana_var_japonica": {
       "precision": 1.0,
-      "recall": 0.6,
-      "f1-score": 0.75,
+      "recall": 0.4,
+      "f1-score": 0.5714285714285714,
       "support": 30.0
     },
     "Ulmus_laciniata": {
-      "precision": 0.6333333333333333,
+      "precision": 0.5,
       "recall": 1.0,
-      "f1-score": 0.7755102040816326,
+      "f1-score": 0.6666666666666666,
       "support": 19.0
     },
     "Ulmus_parvifolia": {
-      "precision": 0.5882352941176471,
+      "precision": 0.8333333333333334,
       "recall": 1.0,
-      "f1-score": 0.7407407407407407,
+      "f1-score": 0.9090909090909091,
       "support": 10.0
     },
     "Zelkova_serrata": {
       "precision": 1.0,
-      "recall": 0.75,
-      "f1-score": 0.8571428571428571,
+      "recall": 0.6428571428571429,
+      "f1-score": 0.782608695652174,
       "support": 28.0
     }
   }

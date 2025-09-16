@@ -40,6 +40,7 @@ def main():
         n_classes=n_species,
         backbone=cfg["BACKBONE"],
         backbone_weights=cfg["BACKBONE_WEIGHTS"],
+        backbone_img_size=cfg["INPUT_SIZE"],
         arc_s=cfg["ARC_S"],
         arc_m=cfg["ARC_M"],
         subcenters=cfg["ARC_SUBCENTERS"],

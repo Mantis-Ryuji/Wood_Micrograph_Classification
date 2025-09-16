@@ -206,7 +206,7 @@ class Trainer:
 
         self.model.to(self.device)
 
-        # --------- Loss (Focal) ----------
+        # --------- Loss (Focal for TRAIN only) ----------
         self.focal = FocalLoss(gamma=self.focal_gamma, label_smoothing=self.label_smoothing, reduction="mean")
 
         # --------- Optimizer param groups ----------
@@ -312,7 +312,7 @@ class Trainer:
 
     # --------------------------
     def fit(self, train_loader, val_loader) -> Dict[str, Any]:
-        # Early stop patience = scheduler_patience * 2 （提案どおり）
+        # Early stop patience = scheduler_patience * 2
         early_patience = max(1, self.scheduler_patience * 2)
 
         for epoch in range(1, self.epochs + 1):
@@ -332,7 +332,7 @@ class Trainer:
                 print(f"\n[Epoch {epoch}/{self.epochs}] {self._lr_string()}  arcface m={m_now:.3f}  [backbone: {bb_state}]")
 
             # Train / Val
-            train_m = self._run_epoch(train_loader, train=True, lambda_center=lambda_center_now)
+            train_m = self._run_epoch(train_loader, train=True,  lambda_center=lambda_center_now)
             val_m   = self._run_epoch(val_loader,   train=False, lambda_center=lambda_center_now)
 
             # Scheduler step
@@ -424,12 +424,13 @@ class Trainer:
             # eval uses BN in eval mode
             self.model.eval()
 
-        meters = {"loss": 0.0, "n": 0, "acc": 0.0, "top5": 0.0}
+        meters = {"loss": 0.0, "n": 0, "acc": 0.0, "top5": 0.0, "ce": 0.0}
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
 
             if train:
+                # ---------- TRAIN: Focal(+Center) with margin ----------
                 self.optimizer.zero_grad(set_to_none=True)
 
                 out = self.model(x, target=y)  # margin applied
@@ -445,15 +446,24 @@ class Trainer:
 
                 if self.ema is not None:
                     self.ema.update(self.model)
-            else:
+
+                # Reference CE (no margin, standard CE) for history
                 with torch.no_grad():
-                    out = self.model(x, target=None)  # eval: no margin
-                    logits = out["logits"]
-                    loss = self.focal(logits, y)  # report focal for symmetry
+                    logits_nom = self.model(x, target=None)["logits"]  # no margin
+                    ce = F.cross_entropy(logits_nom, y, reduction="mean")
+
+            else:
+                # ---------- VAL: standard CE (no margin, no focal) ----------
+                with torch.no_grad():
+                    out_nom = self.model(x, target=None)  # no margin
+                    logits = out_nom["logits"]
+                    loss = F.cross_entropy(logits, y, reduction="mean")  # this is val_loss
+                    ce = loss  # identical; avoid extra forward
 
             B = x.size(0)
             acc1, acc5 = accuracy_topk(logits, y, topk=(1, 5))
             meters["loss"] += float(loss.item()) * B
+            meters["ce"]   += float(ce.item()) * B
             meters["acc"]  += acc1 * B
             meters["top5"] += acc5 * B
             meters["n"]    += B
@@ -462,7 +472,8 @@ class Trainer:
         prefix = "train_" if train else "val_"
         return {
             f"{prefix}loss": meters["loss"] / n,
-            f"{prefix}acc": meters["acc"] / n,
+            f"{prefix}ce":   meters["ce"] / n,
+            f"{prefix}acc":  meters["acc"] / n,
             f"{prefix}top5": meters["top5"] / n,
         }
 

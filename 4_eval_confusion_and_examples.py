@@ -81,7 +81,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = FaceWoodNet(
         n_classes=n_classes,
-        backbone=cfg["BACKBONE"], backbone_weights=cfg["BACKBONE_WEIGHTS"],
+        backbone=cfg["BACKBONE"], backbone_weights=cfg["BACKBONE_WEIGHTS"], backbone_img_size=cfg["INPUT_SIZE"],
         arc_s=cfg["ARC_S"], arc_m=cfg["ARC_M"],
         subcenters=cfg["ARC_SUBCENTERS"], use_center=cfg["USE_CENTER"]
     ).to(device).eval()

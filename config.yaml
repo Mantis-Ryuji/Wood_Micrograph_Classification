@@ -1,29 +1,21 @@
+model:
+  n_species: 119
+  backbone: "maxvit_tiny_rw_224"
+  backbone_weights: "imagenet"
+  arcface: { s: 28.0, m: 0.15, subcenters: 3 }
+  use_center_loss: true
+
 data:
   h5_path: "data/WIG_v1.2.1_900.h5"
   csv_path: "data/wig_v1.2.1_index.csv"
-  split:
-    ratios: [0.8, 0.1, 0.1]
-    seed: 42
-  dataloader:
-    batch_size: 32
-    num_workers: 4
-    pin_memory: true
-  input_size: 320
+  split: { ratios: [0.8, 0.1, 0.1], seed: 42 }
+  dataloader: { batch_size: 32, num_workers: 4, pin_memory: true }
+  input_size: 256   # 320 とか採用したかったが重い
   balanced_sampler: true
 
-model:
-  n_species: 119
-  backbone: "convnextv2_tiny"
-  backbone_weights: "imagenet"
-  arcface:
-    s: 28.0
-    m: 0.15
-    subcenters: 3               # SubCenter-ArcFace
-  use_center_loss: true
-
 loss:
-  label_smoothing: 0.01
-  focal_gamma: 2.5
+  label_smoothing: 0.02
+  focal_gamma: 2.0
   lambda_center: 0.0
   center_lr: 0.01
 
@@ -33,12 +25,12 @@ training:
   early_stop: true
   scheduler: true
   scheduler_type: "CosineWarmRestarts"
-  scheduler_patience: 10             # 早停=この×2で判定（実装）
+  scheduler_patience: 10
   scheduler_threshold: 0.0001
   scheduler_cooldown: 1
   scheduler_min_lr: 1e-5
 
-  weight_decay: 0.03
+  weight_decay: 0.05
   backbone_lr_mult: 0.1
   head_lr_mult: 1.0
   backbone_freeze_epochs: 2
@@ -48,7 +40,7 @@ training:
 
   margin_warmup_epochs: 20
   margin_m0: 0.15
-  margin_m1: 0.60
+  margin_m1: 0.50
   center_warmup_epochs: 15
   center_lambda_final: 0.03
 
@@ -63,4 +55,4 @@ training:
 
   use_ema: true
   ema_decay: 0.999
-  tta: false                     # 最終テスト時だけ true 推奨
+  tta: false
