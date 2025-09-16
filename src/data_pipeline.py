@@ -227,67 +227,131 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 def split_by_individual_stratified(
     df: pd.DataFrame,
-    ratios=(0.7, 0.2, 0.1),
+    ratios=(0.8, 0.1, 0.1),
     seed: int = 42,
+    # レア種の定義（どちらかで判定して True になった species を train 専属に）
+    rare_min_individuals: int = 3,   # 個体数がこの閾値未満の species をレア扱い
+    rare_min_images: int = 3,        # 画像枚数がこの閾値未満の species をレア扱い
 ):
     """
     個体ID単位で train/val/test に分割。
-    individual_id ごとに代表 species を付与し、StratifiedShuffleSplit で層化。
-    ただし、出現個体数が少なすぎて層化できない species は train に寄せるフォールバック。
+    - species で層化（StratifiedShuffleSplit）
+    - レア種（個体数 < rare_min_individuals または 画像数 < rare_min_images）は全個体を train に寄せる
     """
     r_train, r_val, r_test = ratios
     if not np.isclose(r_train + r_val + r_test, 1.0):
         raise ValueError(f"ratios must sum to 1.0, got {ratios}")
 
-    # 個体ごとの代表 species（単一種前提）。複数種があれば最頻に寄せる。
-    per_ind = (
+    # --- 個体 -> 代表species（単一種前提、複数なら最頻）
+    per_ind_species = (
         df.groupby("individual_id")["species"]
-          .agg(lambda x: x.mode().iat[0] if len(x.mode()) else x.iloc[0])
-          .reset_index()
-    )
-    ind_ids = per_ind["individual_id"].to_numpy()
-    ind_labels = per_ind["species"].to_numpy()
-
-    # --- 1) train と temp(val+test) に層化分割
-    sss1 = StratifiedShuffleSplit(
-        n_splits=1,
-        test_size=(1.0 - r_train),
-        random_state=seed
+          .agg(lambda x: x.mode().iat[0] if not x.mode().empty else x.iloc[0])
+          .reset_index(name="species")
     )
 
-    try:
-        train_idx, temp_idx = next(sss1.split(ind_ids, ind_labels))
-    except ValueError:
-        # クラスが少なすぎ等で層化不能 → ランダムに個体分割へフォールバック
-        rng = np.random.RandomState(seed)
-        perm = rng.permutation(len(ind_ids))
-        n_train = int(round(r_train * len(ind_ids)))
-        train_idx, temp_idx = perm[:n_train], perm[n_train:]
+    # --- speciesの個体数・画像数
+    n_inds_per_species   = per_ind_species["species"].value_counts()
+    n_imgs_per_species   = df["species"].value_counts()
 
-    train_ids = ind_ids[train_idx]
-    temp_ids  = ind_ids[temp_idx]
-    temp_labels = ind_labels[temp_idx]
+    # --- レア種の集合（どちらかが閾値未満）
+    rare_species = set(n_inds_per_species[n_inds_per_species < rare_min_individuals].index) \
+                   | set(n_imgs_per_species[n_imgs_per_species < rare_min_images].index)
 
-    # --- 2) temp を val/test に層化分割
-    frac_val = r_val / (r_val + r_test) if (r_val + r_test) > 0 else 0.5
-    sss2 = StratifiedShuffleSplit(
-        n_splits=1,
-        test_size=(1.0 - frac_val),
-        random_state=seed + 1
-    )
-    try:
-        val_sub_idx, test_sub_idx = next(sss2.split(temp_ids, temp_labels))
-    except ValueError:
-        # ここもフォールバック（ランダム）
-        rng = np.random.RandomState(seed + 1)
-        perm2 = rng.permutation(len(temp_ids))
-        n_val = int(round(frac_val * len(temp_ids)))
-        val_sub_idx, test_sub_idx = perm2[:n_val], perm2[n_val:]
+    # --- レア種に属する個体IDは train 専属
+    rare_ind_ids = set(per_ind_species.loc[per_ind_species["species"].isin(rare_species), "individual_id"])
+    all_ind_ids  = set(per_ind_species["individual_id"])
+    base_ind_ids = np.array(sorted(all_ind_ids - rare_ind_ids))  # 層化対象
+    base_labels  = per_ind_species.set_index("individual_id").loc[base_ind_ids, "species"].to_numpy()
 
-    val_ids  = temp_ids[val_sub_idx]
-    test_ids = temp_ids[test_sub_idx]
+    # 目標個体数（全体に対する比率で計算）
+    total_n_inds = len(all_ind_ids)
+    target_n_train = int(round(r_train * total_n_inds))
+    target_n_val   = int(round(r_val   * total_n_inds))
+    target_n_test  = total_n_inds - target_n_train - target_n_val  # 丸め整合
 
-    # --- DataFrame へ反映
+    # すでにレア種で埋まっている train 個体数
+    n_rare = len(rare_ind_ids)
+    # 残りからどれだけ train に取りたいか
+    n_train_from_base = max(0, target_n_train - n_rare)
+    n_base = len(base_ind_ids)
+
+    # 退避：base が空 or 非常に少ないときのガード
+    if n_base == 0:
+        # すべてレア → train だけで終わる（val/test 空）
+        train_ids = np.array(sorted(all_ind_ids))
+        val_ids   = np.array([], dtype=object)
+        test_ids  = np.array([], dtype=object)
+    else:
+        # --- 1) base を train_base と temp(val+test) に層化分割
+        #     train_size を個数指定（層化が不可能な場合はフォールバック）
+        if n_train_from_base <= 0:
+            # train はレアで目標達成済み → baseは全て temp 側へ
+            train_base_ids = np.array([], dtype=object)
+            temp_ids = base_ind_ids
+            temp_labels = base_labels
+        elif n_train_from_base >= n_base:
+            # 逆に全て train に寄せる
+            train_base_ids = base_ind_ids
+            temp_ids = np.array([], dtype=object)
+            temp_labels = np.array([], dtype=object)
+        else:
+            sss1 = StratifiedShuffleSplit(
+                n_splits=1,
+                train_size=n_train_from_base,  # 個数を直接指定
+                random_state=seed
+            )
+            try:
+                train_base_idx, temp_idx = next(sss1.split(base_ind_ids, base_labels))
+                train_base_ids = base_ind_ids[train_base_idx]
+                temp_ids       = base_ind_ids[temp_idx]
+                temp_labels    = base_labels[temp_idx]
+            except ValueError:
+                # 層化できない → ランダム（種の分布は多少崩れるが処理継続）
+                rng = np.random.RandomState(seed)
+                perm = rng.permutation(n_base)
+                train_base_ids = base_ind_ids[perm[:n_train_from_base]]
+                temp_ids       = base_ind_ids[perm[n_train_from_base:]]
+                temp_labels    = per_ind_species.set_index("individual_id").loc[temp_ids, "species"].to_numpy()
+
+        # --- 2) temp を val/test に層化分割
+        n_temp = len(temp_ids)
+        if n_temp == 0:
+            val_ids  = np.array([], dtype=object)
+            test_ids = np.array([], dtype=object)
+        else:
+            # temp からの目標個体数（残り目標を temp 内で按分）
+            n_val_target_from_temp  = min(target_n_val, n_temp)  # ガード
+            # StratifiedShuffleSplit で train_size を個数指定（= val 個体数）
+            if n_val_target_from_temp <= 0 or n_val_target_from_temp >= n_temp:
+                # 端ケース：層化の余地なし
+                rng = np.random.RandomState(seed + 1)
+                perm2 = rng.permutation(n_temp)
+                n_val2 = max(0, min(n_temp - 1, n_val_target_from_temp))
+                val_ids  = temp_ids[perm2[:n_val2]]
+                test_ids = temp_ids[perm2[n_val2:]]
+            else:
+                sss2 = StratifiedShuffleSplit(
+                    n_splits=1,
+                    train_size=n_val_target_from_temp,  # 個数を直接指定
+                    random_state=seed + 1
+                )
+                try:
+                    val_idx, test_idx = next(sss2.split(temp_ids, temp_labels))
+                    val_ids  = temp_ids[val_idx]
+                    test_ids = temp_ids[test_idx]
+                except ValueError:
+                    # フォールバック（ランダム）
+                    rng = np.random.RandomState(seed + 1)
+                    perm2 = rng.permutation(n_temp)
+                    val_ids  = temp_ids[perm2[:n_val_target_from_temp]]
+                    test_ids = temp_ids[perm2[n_val_target_from_temp:]]
+
+        # --- 3) train は rare + train_base を結合
+        train_ids = np.array(sorted(list(rare_ind_ids)))  # レア個体は必ず train
+        if train_base_ids.size > 0:
+            train_ids = np.concatenate([train_ids, train_base_ids])
+
+    # --- DataFrame へ反映（個体リークなし）
     train_df = df[df["individual_id"].isin(train_ids)].reset_index(drop=True)
     val_df   = df[df["individual_id"].isin(val_ids)].reset_index(drop=True)
     test_df  = df[df["individual_id"].isin(test_ids)].reset_index(drop=True)

@@ -2,13 +2,13 @@ data:
   h5_path: "data/WIG_v1.2.1_900.h5"
   csv_path: "data/wig_v1.2.1_index.csv"
   split:
-    ratios: [0.7, 0.2, 0.1]
+    ratios: [0.8, 0.1, 0.1]
     seed: 42
   dataloader:
     batch_size: 32
     num_workers: 4
     pin_memory: true
-  input_size: 512
+  input_size: 320
   balanced_sampler: true
 
 model:
