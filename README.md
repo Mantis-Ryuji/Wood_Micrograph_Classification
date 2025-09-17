@@ -19,7 +19,7 @@
 * **バックボーン**: `timm` ライブラリ（ConvNeXt / ViT / Swin / MaxViT など）。本実装は `MaxViT (maxvit_tiny_rw_224)` を採用
 * **ヘッド**: SubCenter-ArcFace（サブセンタ対応, `subcenters=4`）による角距離学習
 * **補助損失**: Center Loss を併用
-* **データ前処理**: HDF5 データセットを読み込み、個体単位で層化分割。レア種は train のみに配置  
+* **データ前処理**: HDF5 データセットを読み込み、個体単位で層化分割。サンプルが少ない種は train のみに配置  
   **学習時 Aug**: Flip/Rotate(90°), Scale Jitter(±15%), Brightness/Contrast(±10%, ±0.05), Gamma(±10%)  
   **検証/テスト**: Resize + Normalize（TTA は最終評価時に使用）
 * **学習戦略**:
