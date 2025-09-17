@@ -23,8 +23,7 @@ IMAGES_DIR = Path("results")
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 MIN_SUPPORT = 5          # 少数クラス除外
-N_EXAMPLES = 80         # 成功/失敗のサンプル数
-PAGE_SIZE  = 16          # 4×4 固定
+PAGE_SIZE  = 16          # 4×4 固定（全件をページ分割表示）
 
 # =========================
 # 軽量TTA
@@ -69,7 +68,8 @@ def main():
     )
     test_loader = DataLoader(
         IndexedDataset(ds_test),
-        batch_size=cfg["BATCH"], shuffle=True,
+        batch_size=cfg["BATCH"],
+        shuffle=False,
         num_workers=cfg["WORKERS"], pin_memory=cfg["PIN_MEM"], drop_last=False
     )
 
@@ -92,7 +92,9 @@ def main():
 
     # 推論
     y_true: List[int] = []; y_pred: List[int] = []; y_top5: List[bool] = []
-    success_idx_set: set[int] = set(); failure_idx_set: set[int] = set()
+    # データ順を保持するため list に蓄積
+    success_indices: List[int] = []
+    failure_indices: List[int] = []
     idx2tp: Dict[int, Tuple[int,int]] = {}
 
     raw_h5 = h5py.File(cfg["H5_PATH"], "r", libver="latest", swmr=True)
@@ -110,8 +112,8 @@ def main():
                 idx = int(ib[i])
                 t, p = int(yb[i]), int(pred[i])
                 idx2tp[idx] = (t, p)
-                if t == p: success_idx_set.add(idx)
-                else:      failure_idx_set.add(idx)
+                if t == p: success_indices.append(idx)
+                else:      failure_indices.append(idx)
 
     y_true_np = np.array(y_true); y_pred_np = np.array(y_pred)
     top5_acc = float(np.mean(y_top5)) if y_top5 else float("nan")
@@ -145,34 +147,42 @@ def main():
     }
     (IMAGES_DIR/"classification_report_filtered.json").write_text(json.dumps(summary,indent=2,ensure_ascii=False),encoding="utf-8")
 
-    # --- グリッド出力 ---
-    rng = np.random.default_rng(cfg["SEED"])
-    def _sample(idx_set:set[int], n:int)->List[int]:
-        idxs=list(idx_set); 
-        return idxs if len(idxs)<=n else list(rng.choice(idxs,n,replace=False))
-    def _chunks(lst:List[int],size:int): return [lst[i:i+size] for i in range(0,len(lst),size)]
+    # --- グリッド出力（全件） ---
+    def _chunks(lst:List[int], size:int) -> List[List[int]]:
+        return [lst[i:i+size] for i in range(0, len(lst), size)]
+
     def _draw(indices:List[int], title, prefix, fail):
-        pages=_chunks(indices,PAGE_SIZE)
-        for i,page in enumerate(pages):
-            fig,axes=plt.subplots(4,4,figsize=(12,12)); axes=np.asarray(axes)
+        pages = _chunks(indices, PAGE_SIZE)
+        if not pages:  # 該当なし
+            return
+        for i, page in enumerate(pages):
+            fig, axes = plt.subplots(4, 4, figsize=(12, 12))
+            axes = np.asarray(axes)
             fig.suptitle(f"{title} page {i+1}/{len(pages)}")
             for k in range(16):
-                r,c=divmod(k,4); ax=axes[r,c]; ax.axis("off")
-                if k>=len(page): continue
-                idx=page[k]; rec=ds_test.df.iloc[idx]
-                ds_path=rec["dataset_path"]; idx_in=int(rec["idx_in_ds"])
-                img=raw_h5[ds_path][idx_in]; ax.imshow(img,cmap="gray",vmin=0,vmax=255)
-                t,p=idx2tp[idx]; tn=id2spe.get(t,str(t)); pn=id2spe.get(p,str(p))
+                r, c = divmod(k, 4)
+                ax = axes[r, c]
+                ax.axis("off")
+                if k >= len(page): 
+                    continue
+                idx = page[k]
+                rec = ds_test.df.iloc[idx]
+                ds_path = rec["dataset_path"]; idx_in = int(rec["idx_in_ds"])
+                img = raw_h5[ds_path][idx_in]
+                ax.imshow(img, cmap="gray", vmin=0, vmax=255)
+                t, p = idx2tp[idx]
+                tn = id2spe.get(t, str(t)); pn = id2spe.get(p, str(p))
                 ax.set_title(f"T:{tn}\nP:{pn}", fontsize=9, color=("red" if fail else "black"))
-            plt.tight_layout(rect=[0,0.03,1,0.95])
-            fig.savefig(IMAGES_DIR/f"{prefix}_{i}.png",dpi=150); plt.close(fig)
+            plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+            fig.savefig(IMAGES_DIR / f"{prefix}_{i}.png", dpi=150)
+            plt.close(fig)
 
-    succ=_sample(success_idx_set,N_EXAMPLES); fail=_sample(failure_idx_set,N_EXAMPLES)
-    _draw(succ,"Success Examples","success_grid",fail=False)
-    _draw(fail,"Failure Examples","failure_grid",fail=True)
+    # 全件（順序維持）のままページ分割
+    _draw(success_indices, "Success Examples", "success_grid", fail=False)
+    _draw(failure_indices, "Failure Examples", "failure_grid", fail=True)
 
     raw_h5.close()
     print("Done. See results/")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

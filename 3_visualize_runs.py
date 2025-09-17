@@ -59,6 +59,7 @@ def _fmt(v):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--with-ce", action="store_true", help="Accuracyパネルに CE(no margin) を右軸で重ねる")
+    ap.add_argument("--with-lr", action="store_true", help="LRパネルを表示する（デフォルト非表示）")
     args = ap.parse_args()
 
     df = _load_history()
@@ -78,21 +79,25 @@ def main():
     if best_epoch is None and "val_acc" in df.columns and not df["val_acc"].dropna().empty:
         best_epoch = int(df.loc[df["val_acc"].idxmax(), "epoch"])
 
-    # ←—— ここが肝：凡例に出す数値を best_epoch の値に差し替え（凡例の項目名は変更しない）
+    # 凡例に出す数値を best_epoch の値に差し替え（凡例の項目名は変更しない）
     show = {
-        "train_acc":  _get_at_epoch(df, "train_acc",  best_epoch),
-        "val_acc":    _get_at_epoch(df, "val_acc",    best_epoch),
-        "train_top5": _get_at_epoch(df, "train_top5", best_epoch),
-        "val_top5":   _get_at_epoch(df, "val_top5",   best_epoch),
+        "train_acc":   _get_at_epoch(df, "train_acc",   best_epoch),
+        "val_acc":     _get_at_epoch(df, "val_acc",     best_epoch),
+        "train_top5":  _get_at_epoch(df, "train_top5",  best_epoch),
+        "val_top5":    _get_at_epoch(df, "val_top5",    best_epoch),
         "lr_backbone": _get_at_epoch(df, "lr_backbone", best_epoch),
         "lr_head":     _get_at_epoch(df, "lr_head",     best_epoch),
-        "val_ce":     _get_at_epoch(df, "val_ce",     best_epoch) if "val_ce" in df.columns else None,
+        "val_ce":      _get_at_epoch(df, "val_ce",      best_epoch) if "val_ce" in df.columns else None,
     }
 
-    # ---- Figure: 2x2 だが右下は削除（3枚表示） ----
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8), constrained_layout=True)
-    ax_acc, ax_top5, ax_lr, ax_empty = axes[0,0], axes[0,1], axes[1,0], axes[1,1]
-    fig.delaxes(ax_empty)
+    # ---- Figure 構成：LRの有無でレイアウト切替 ----
+    if args.with_lr:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8), constrained_layout=True)
+        ax_acc, ax_top5, ax_lr, ax_empty = axes[0,0], axes[0,1], axes[1,0], axes[1,1]
+        fig.delaxes(ax_empty)
+    else:
+        fig, (ax_acc, ax_top5) = plt.subplots(1, 2, figsize=(12, 4.5), constrained_layout=True)
+        ax_lr = None  # 使わない
 
     # (1) Top-1 Accuracy
     ax = ax_acc
@@ -139,18 +144,26 @@ def main():
     ax.grid(True, alpha=0.3)
     if any_curve: ax.legend(loc="lower right")
 
-    # (3) Learning Rates
-    ax = ax_lr
-    if "lr_backbone" in df.columns:
-        ax.plot(df["epoch"], df["lr_backbone"], label=f"lr_backbone")
-    if "lr_head" in df.columns:
-        ax.plot(df["epoch"], df["lr_head"],     label=f"lr_head")
-    ax.set_title("Learning Rates")
-    ax.set_xlabel("Epoch"); ax.set_ylabel("LR")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
+    # (3) Learning Rates（--with-lr のときだけ描画）
+    if args.with_lr:
+        ax = ax_lr
+        if "lr_backbone" in df.columns:
+            ax.plot(df["epoch"], df["lr_backbone"], label=f"lr_backbone")
+        if "lr_head" in df.columns:
+            ax.plot(df["epoch"], df["lr_head"],     label=f"lr_head")
+        ax.set_title("Learning Rates")
+        ax.set_xlabel("Epoch"); ax.set_ylabel("LR")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
 
-    out_path = OUT_DIR / ("training_tta_acc_lr.png" if not args.with_ce else "training_tta_acc_lr_ce.png")
+    # 出力ファイル名
+    fname = "training_tta_acc"
+    if args.with_lr:
+        fname += "_lr"
+    if args.with_ce:
+        fname += "_ce"
+    out_path = OUT_DIR / f"{fname}.png"
+
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
     print(f"Saved: {out_path.resolve()}")

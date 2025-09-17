@@ -1,5 +1,3 @@
-<img src="results/WOODLOGO.png" alt="logo" width="120" align="right">
-
 # Wood Micrograph Classification
 
 <p>
@@ -14,7 +12,9 @@
 
 本リポジトリは、**広葉樹の光学顕微鏡画像**を対象とした **種分類（species classification）** の実装です。
 
-### 特徴
+<img src="results/readme_cells.png">
+
+## 特徴
 
 * **バックボーン**: `timm` ライブラリ（ConvNeXt / ViT / Swin / MaxViT など）。本実装は `MaxViT (maxvit_tiny_rw_224)` を採用
 * **ヘッド**: SubCenter-ArcFace（サブセンタ対応, `subcenters=4`）による角距離学習
@@ -29,7 +29,6 @@
   * EMA（Exponential Moving Average）
   * Balanced Sampler によるクラス不均衡補正
 
-> 備考: 汎化性能は依然として課題であり、個体依存の偏りやパターン過信を抑えるために、サンプリングと前処理/Aug の設計を改良する必要があります。
 
 ### 実行スクリプト
 
@@ -40,13 +39,13 @@
 
 ---
 
-### 背景と課題
+## 背景と課題
 
-このタスクは **同一 family／同一 genus 内の種を見分ける**必要があり、局所構造や組織配列がほぼ共通です。体感としては **「双子の識別より難しい」**レベルの微差判定で、さらに **個体差（試料差・切片条件）や撮影条件差**が上乗せされます。結果として、従来の CE ベース分類器（例: ResNet）では太刀打ちできませんでした。
+このタスクは **同一 family／同一 genus 内の種を見分ける**必要があり、局所構造や組織配列がほぼ共通です。体感としては **「双子の識別より難しい」** レベルの微差判定で、さらに **個体差（試料差・切片条件** が上乗せされます。結果として、従来の分類器（例: ResNet）では太刀打ちできませんでした。
 
-そこで、顔認証に近い難しさだと捉え、**角距離ベースの SubCenter-ArcFace（margin ウォームアップ）**を採用。バックボーンは **MaxViT (maxvit_tiny_rw_224)** に統一し、必要に応じて **Center Loss** を併用、学習の安定化に **EMA** と **CosineAnnealingWarmRestarts** を使っています。データは **個体IDで層化分割**し、**レア種は train 専属**。学習時は **Flip/Rotate(90°)、Scale Jitter(±15%)、Brightness/Contrast(±10%, ±0.05)、Gamma(±10%)** を弱めに適用し、検証/テストでは **Resize + Normalize のみ**（TTA は最終評価時のみ任意）としています。
+そこで、**顔認証**に近い難しさだと捉え、角距離ベースの SubCenter-ArcFace（margin ウォームアップ）を採用。バックボーンは **MaxViT (maxvit_tiny_rw_224)** を採用し、必要に応じて Center Loss を併用、学習の安定化に EMA と CosineAnnealingWarmRestarts を使っています。データは 個体IDで層化分割し、レア種は train 専属。学習時は Flip/Rotate(90°)、Scale Jitter(±15%)、Brightness/Contrast(±10%, ±0.05)、Gamma(±10%) を弱めに適用し、検証/テストでは Resize + Normalize のみ（TTA は最終評価時）としています。
 
-それでも **汎化性能は依然として主要課題**です。未知個体・未知撮影条件への頑健性や確率の過信（CE の悪化）には改善の余地があり、**サンプリング設計と前処理/Aug の最適化**が精度を大きく左右します。本実装はまず **安定に分類が成立するベースライン**を提供するもので、今後はこの土台の上で **一般化の強化**を進めていきます。
+それでも **汎化性能** は依然として主要課題です。未知個体への頑健性や確率の過信（CE の悪化）には改善の余地があり、**サンプリング設計と前処理/Aug の最適化** が精度を大きく左右すると考えられます。本実装はまず安定に分類が成立するベースラインを提供するもので、今後はこの土台の上で **一般化の強化** を進める必要があります。
 
 
 ## Dataset（Xylarium Digital Database: XDD\_016）
@@ -57,7 +56,7 @@
 * URI: [http://hdl.handle.net/2433/250046](http://hdl.handle.net/2433/250046)
 * コレクション: 木材情報学と教育用材鑑調査室デジタルデータベース
 
-### Overview
+#### Overview
 
 * Families: 7
 * Genera: 33
@@ -101,7 +100,71 @@
 
 ## 結果
 
-（準備中）
+**広葉樹顕微鏡画像を用いた種分類** において、学習の推移・テスト評価・精度をまとめました。
+
+#### 精度の概要
+
+本研究では、学習過程において 検証精度（ `val_acc` ）が最大となったエポック を `best_model` として保存しました。本モデルでは epoch 21 で `val_acc` が 0.724 に達し、この時点の重みを評価対象としています。
+
+* **学習精度**
+  
+  * Top-1 Accuracy: **0.981**
+  * Top-5 Accuracy: **0.992**
+
+<br>
+
+* **検証精度**
+  
+  * Top-1 Accuracy: **0.724**
+  * Top-5 Accuracy: **0.822**
+
+<br>
+
+* **テスト精度（TTAあり）**
+
+  * Top-1 Accuracy: **0.798**
+  * Top-5 Accuracy: **0.930**
+<br>
+
+<p align="center">
+<img src="results/training_tta_acc.png">
+<b>Fig. 1</b> 学習精度の履歴
+</p>
+
+<br>
+
+学習記録の詳細は[こちら](runs/history.json)
+
+#### 分類の成功例と課題
+
+* **成功例**
+
+  * *Aesculus turbinata*, *Aphananthe aspera*, *Castanea crenata*, *Celtis sinensis*, *Corylus sieboldiana* などでは **precision/recall/F1 = 1.0** と完全分類を達成。
+  * また、*Ostrya japonica*（F1≈0.99）、*Cinnamomum camphora*（F1≈0.96）、*Litsea coreana*（F1≈0.95）など、多くの主要樹種で高精度を示しました。
+
+
+* **課題のある種**
+
+  * *Carpinus japonica*（F1≈0.31）、*Quercus acuta*（F1≈0.47）、*Quercus salicina*（F1≈0.47）など、一部の樹種で大きな誤分類が確認されました。
+  * 特に **ブナ科（Quercus 属）間** では同属内での取り違えが頻発し、混同行列でもその傾向が表れています。
+
+
+<p align="center">
+<img src="results/confusion_matrix_norm_filtered.png"><br>
+<b>Fig. 2</b> テストデータセットにおける混同行列
+</p>
+
+さらに、成功例と失敗例の一部を可視化し、モデルの挙動を直感的に把握できるようにしました。
+
+| Success Example                        | Failure Example                        |
+| -------------------------------------- | -------------------------------------- |
+| <img src="results/success_grid_0.png"> | <img src="results/failure_grid_0.png"> |
+
+
+#### まとめ
+本モデルは **Top-1 精度 ≈ 0.80、Top-5 精度 ≈ 0.93** と高い分類性能を実現しました。一方で、同属種の識別には依然として課題が残されており、特に **Quercus 属の細分類**やサンプル数の少ないクラスでの改善が今後の焦点となります。また、汎化性能についても今後の課題です。
+
+分類結果の詳細については[こちら](Classification_Report.md)
 
 ---
 
