@@ -59,7 +59,7 @@
 * **高精度種（F1 > 0.9）**
 
   * *Ostrya japonica*（≈0.99）, *Cinnamomum camphora*（≈0.96）, *Litsea coreana*（≈0.95）, *Lithocarpus edulis*（≈0.94）, *Quercus crispula*（≈0.94）, *Castanopsis cuspidata*（≈0.94）, *Ulmus davidiana var. japonica*（≈0.91）。
-  * サポート数が多い種に加え、固有のスペクトル特徴を持つ種は安定して高精度。
+  * サポート数が多い種に加え、固有の特徴を持つ種は安定して高精度。
 
 * **中精度（F1 ≈ 0.7–0.8台）**
 
