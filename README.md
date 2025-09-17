@@ -28,7 +28,7 @@
   * 学習率スケジューラ: CosineAnnealingWarmRestarts（再スタート間隔は長め）／ReduceLROnPlateau（任意）
   * EMA（Exponential Moving Average）
   * Balanced Sampler によるクラス不均衡補正
-
+  * [Config](config.yaml)
 
 ### 実行スクリプト
 
@@ -153,16 +153,17 @@
 </p>
 
 さらに、成功例と失敗例の一部を可視化し、モデルの挙動を直感的に把握できるようにしました。<br>
+分類結果の詳細（全部）については[こちら](Classification_Report.md) <br>
 `T`: True , `P`: Predict
 
-* **成功例**
+* **正解例（一部）**
 
 <p align="center">
 <img src="results/success_grid.png"><br>
 <b>Fig. 3</b> テストデータセットにおける分類成功例
 </p>
 
-* **失敗例**
+* **誤分類例（一部）**
 
 <p align="center">
 <img src="results/failure_grid.png"><br>
@@ -172,8 +173,6 @@
 ### まとめ
 
 本モデルは **Top-1 精度 ≈ 0.80、Top-5 精度 ≈ 0.93** と高い分類性能を実現しました。一方で、同属種の識別には依然として課題が残されており、特に **Quercus 属の細分類**やサンプル数の少ないクラスでの改善が今後の焦点となります。また、汎化性能についても今後の課題です。
-
-分類結果の詳細（全部）については[こちら](Classification_Report.md)
 
 ---
 
