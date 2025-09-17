@@ -10,7 +10,7 @@
 ## 種別ごとの分類指標
 
 <details>
-<summary><b>Classification Report</b></summary>
+<summary><b>Classification Report （クリックで展開）</b></summary>
 
 | Species                       | Precision | Recall | F1-score | Support |
 | ----------------------------- | --------- | ------ | -------- | ------- |
@@ -97,7 +97,7 @@
 `T`: True , `P`: Predict
 
 <details>
-<summary><b>正解例</b></summary>
+<summary><b>正解例（クリックで展開）</b></summary>
 
 <img src="results/success_grid_0.png">
 <img src="results/success_grid_1.png">
@@ -136,7 +136,7 @@
 </details>
 
 <details>
-<summary><b>誤分類例</b></summary>
+<summary><b>誤分類例（クリックで展開）</b></summary>
 
 <img src="results/failure_grid_0.png">
 <img src="results/failure_grid_1.png">
