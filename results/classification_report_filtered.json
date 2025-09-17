@@ -2,8 +2,8 @@
   "ckpt_epoch": 21,
   "min_support": 5,
   "overall": {
-    "acc_top1": 0.7851622874806801,
-    "acc_top5": 0.9227202472952086
+    "acc_top1": 0.7975270479134466,
+    "acc_top5": 0.9304482225656878
   },
   "by_species": {
     "Aesculus_turbinata": {
@@ -56,8 +56,8 @@
     },
     "Cinnamomum_camphora": {
       "precision": 1.0,
-      "recall": 0.9230769230769231,
-      "f1-score": 0.96,
+      "recall": 0.9038461538461539,
+      "f1-score": 0.9494949494949495,
       "support": 52.0
     },
     "Cinnamomum_yabunikkei": {
@@ -73,15 +73,15 @@
       "support": 12.0
     },
     "Fagus_crenata": {
-      "precision": 0.9032258064516129,
-      "recall": 0.5384615384615384,
-      "f1-score": 0.6746987951807228,
+      "precision": 0.9428571428571428,
+      "recall": 0.6346153846153846,
+      "f1-score": 0.7586206896551724,
       "support": 52.0
     },
     "Fagus_japonica": {
-      "precision": 0.3333333333333333,
-      "recall": 0.8,
-      "f1-score": 0.47058823529411764,
+      "precision": 0.40625,
+      "recall": 0.8666666666666667,
+      "f1-score": 0.5531914893617021,
       "support": 15.0
     },
     "Lithocarpus_edulis": {
@@ -97,9 +97,9 @@
       "support": 20.0
     },
     "Machilus_thunbergii": {
-      "precision": 0.7666666666666667,
-      "recall": 0.7666666666666667,
-      "f1-score": 0.7666666666666667,
+      "precision": 0.75,
+      "recall": 0.8,
+      "f1-score": 0.7741935483870968,
       "support": 30.0
     },
     "Ostrya_japonica": {
@@ -115,9 +115,9 @@
       "support": 22.0
     },
     "Quercus_crispula": {
-      "precision": 0.9,
+      "precision": 0.9152542372881356,
       "recall": 0.9818181818181818,
-      "f1-score": 0.9391304347826087,
+      "f1-score": 0.9473684210526315,
       "support": 55.0
     },
     "Quercus_gilva": {
@@ -127,33 +127,33 @@
       "support": 9.0
     },
     "Quercus_salicina": {
-      "precision": 0.6363636363636364,
-      "recall": 0.3684210526315789,
-      "f1-score": 0.4666666666666667,
+      "precision": 0.75,
+      "recall": 0.47368421052631576,
+      "f1-score": 0.5806451612903226,
       "support": 19.0
     },
     "Quercus_serrata": {
-      "precision": 1.0,
-      "recall": 0.3333333333333333,
-      "f1-score": 0.5,
-      "support": 9.0
-    },
-    "Quercus_variabilis": {
       "precision": 1.0,
       "recall": 0.4444444444444444,
       "f1-score": 0.6153846153846154,
       "support": 9.0
     },
+    "Quercus_variabilis": {
+      "precision": 1.0,
+      "recall": 0.2222222222222222,
+      "f1-score": 0.36363636363636365,
+      "support": 9.0
+    },
     "Ulmus_davidiana_var_japonica": {
       "precision": 1.0,
-      "recall": 0.8333333333333334,
-      "f1-score": 0.9090909090909091,
+      "recall": 0.8666666666666667,
+      "f1-score": 0.9285714285714286,
       "support": 30.0
     },
     "Ulmus_laciniata": {
-      "precision": 0.7916666666666666,
+      "precision": 0.8260869565217391,
       "recall": 1.0,
-      "f1-score": 0.8837209302325582,
+      "f1-score": 0.9047619047619048,
       "support": 19.0
     },
     "Ulmus_parvifolia": {

@@ -26,17 +26,28 @@ MIN_SUPPORT = 5          # 少数クラス除外
 PAGE_SIZE  = 16          # 4×4 固定（全件をページ分割表示）
 
 # =========================
-# 軽量TTA
+# 軽量TTA（2_eval_best.py と同一ポリシー：6-view）
 # =========================
 @torch.no_grad()
 def forward_tta(model: torch.nn.Module, x: torch.Tensor) -> torch.Tensor:
-    outs = [
-        model(x)["logits"],
-        model(torch.flip(x, dims=[3]))["logits"],
-        model(x.transpose(2, 3))["logits"],
-        model(torch.flip(x.transpose(2, 3), dims=[3]))["logits"]
+    """
+    Flip + rot90 の 6-view TTA。
+    各 view の logits を平均します。
+    """
+    # x: (B, C, H, W)
+    views = [
+        x,                                           # identity
+        torch.flip(x, dims=[3]),                     # hflip
+        torch.flip(x, dims=[2]),                     # vflip
+        torch.rot90(x, 1, dims=[2, 3]),              # rot90
+        torch.rot90(x, 2, dims=[2, 3]),              # rot180
+        torch.rot90(x, 3, dims=[2, 3]),              # rot270
     ]
-    return torch.stack(outs, dim=0).mean(0)
+    logits_sum = None
+    for v in views:
+        out = model(v)["logits"]  # FaceWoodNet は dict を返し、その中の "logits" を使用
+        logits_sum = out if logits_sum is None else (logits_sum + out)
+    return logits_sum / float(len(views))
 
 def set_global_seeds(seed: int):
     random.seed(seed); np.random.seed(seed)

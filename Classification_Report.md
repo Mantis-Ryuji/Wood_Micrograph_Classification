@@ -2,12 +2,15 @@
 
 ## 全体精度
 
-* **Top-1 Accuracy**: **0.785**
-* **Top-5 Accuracy**: **0.923**
+* **Top-1 Accuracy**: **0.798**
+* **Top-5 Accuracy**: **0.930**
 * **min\_support**: 5
   （サポート数が 5 未満のクラスは除外。画像枚数が極端に少ない種については学習データに全振りしているため。）
 
 ## 種別ごとの分類指標
+
+<details>
+<summary><b>Classification Report</b></summary>
 
 | Species                       | Precision | Recall | F1-score | Support |
 | ----------------------------- | --------- | ------ | -------- | ------- |
@@ -39,56 +42,59 @@
 | Ulmus parvifolia              | 0.667     | 1.000  | 0.800    | 10      |
 | Zelkova serrata               | 1.000     | 0.750  | 0.857    | 28      |
 
+</details>
 
 ## 考察
 
 * **全体性能**
 
-  * **Top-1 Accuracy = 0.785**, **Top-5 Accuracy = 0.923**。
-  * Top-5 では9割を超えており、「候補集合には正解が入る」ケースが大多数である一方、Top-1 に絞ると約2割弱の誤分類が残ることが分かる。
+  * **Top-1 Accuracy = 0.798**, **Top-5 Accuracy = 0.930**。
+  * Top-5 では 9割超のカバー率を達成しており、候補集合には高確率で正解が含まれる。一方で Top-1 では約 20% の誤分類が残り、依然として単一判定は難しい。
 
-* **完全に分類できた種（F1 = 1.0）**
+* **完全分類できた種（F1 = 1.0）**
 
-  * *Aesculus turbinata*, *Aphananthe aspera*, *Castanea crenata*, *Celtis sinensis*, *Corylus sieboldiana* などで precision・recall がともに 1.0。
-  * これらは他種との差異が明瞭で、かつサンプル数もサポートを満たしており、学習が安定していると考えられる。
+  * *Aesculus turbinata*, *Aphananthe aspera*, *Castanea crenata*, *Celtis sinensis*, *Corylus sieboldiana* など。
+  * 他属との区別が明瞭で、少数サンプルでも確実に識別できることを示す。
 
-* **高精度を達成した種（F1 > 0.9）**
+* **高精度種（F1 > 0.9）**
 
-  * *Ostrya japonica*（F1 ≈ 0.99）, *Cinnamomum camphora*（F1 ≈ 0.96）, *Litsea coreana*（F1 ≈ 0.95）, *Lithocarpus edulis*（F1 ≈ 0.94）, *Quercus crispula*（F1 ≈ 0.94）など。
-  * 多くは support 数が比較的多く、学習データのカバレッジが良いことが高精度に寄与している。
+  * *Ostrya japonica*（≈0.99）, *Cinnamomum camphora*（≈0.96）, *Litsea coreana*（≈0.95）, *Lithocarpus edulis*（≈0.94）, *Quercus crispula*（≈0.94）, *Castanopsis cuspidata*（≈0.94）, *Ulmus davidiana var. japonica*（≈0.91）。
+  * サポート数が多い種に加え、固有のスペクトル特徴を持つ種は安定して高精度。
 
-* **中程度の精度（F1 ≈ 0.7–0.8）**
+* **中精度（F1 ≈ 0.7–0.8台）**
 
-  * *Fagus crenata*（F1 ≈ 0.67）, *Machilus thunbergii*（F1 ≈ 0.77）, *Castanopsis sieboldii*（F1 ≈ 0.81）, *Ulmus laciniata*（F1 ≈ 0.88）, *Zelkova serrata*（F1 ≈ 0.86）など。
-  * 精度は一定以上確保できているが、誤分類の傾向も見られ、さらなる改良余地がある。
+  * *Machilus thunbergii*（0.77）, *Castanopsis sieboldii*（0.81）, *Fagus crenata*（0.68）, *Ulmus laciniata*（0.88）, *Zelkova serrata*（0.86）。
+  * 一定水準の識別力はあるが、誤分類パターンも確認され改善余地がある。
 
-* **課題の大きい種（F1 < 0.5 前後）**
+* **低精度種（F1 < 0.5 前後）**
 
-  * *Carpinus japonica*（F1 ≈ 0.31）, *Quercus acuta*（F1 ≈ 0.47）, *Quercus salicina*（F1 ≈ 0.47）, *Fagus japonica*（F1 ≈ 0.47）, *Quercus gilva*（F1 ≈ 0.45）, *Quercus serrata*（F1 ≈ 0.50）など。
-  * 特に **Quercus 属内**では複数の種で recall が低下し、同属間の混同が顕著に現れている。
+  * *Carpinus japonica*（0.31）, *Quercus acuta*（0.47）, *Quercus salicina*（0.47）, *Fagus japonica*（0.47）, *Quercus gilva*（0.46）, *Quercus serrata*（0.50）。
+  * 特に *Carpinus japonica* は recall = 0.18 と低く、ほとんどが他種に吸収される。Quercus 属や Fagus 属は同属間の混同が顕著。
 
 * **誤分類の傾向**
 
-  * recall が極端に低い (*Carpinus japonica*: 0.18) ケースは「真陽性を取り逃がし、多くを他クラスに吸われる」傾向。
-  * precision が高く recall が低い場合は「正と判定したときは正しいが、その判定自体が少ない」＝識別が保守的になっていると解釈できる。
-  * 一方で recall が高く precision が低いケースは、クラス外を取り込みやすく、過剰にラベルを広げていることを示唆。
+  * **高 precision・低 recall**（例: *Carpinus japonica*）→ 判定は正確だが数が少なく、過度に保守的。
+  * **高 recall・低 precision**（例: *Cinnamomum yabunikkei*）→ 他クラスを取り込みやすく、判定が過剰。
+  * **両方低め**（例: *Fagus japonica*）→ 識別そのものが不安定。
 
-* **属・科レベルでの課題**
+* **属・科レベルでの難しさ**
 
-  * *Quercus* 属（アカガシ類・ナラ類）や *Fagus* 属（ブナ類）など、**形態的に近縁で境界が曖昧なグループ**において誤分類が集中している。
-  * 逆に *Aphananthe* や *Celtis* のように属単位でも比較的孤立した特徴を持つ種は安定して正しく分類されている。
+  * *Quercus* 属（アカガシ・ナラ類）、*Fagus* 属（ブナ類）での混同が大半を占める。これらは形態的にも近縁で、差異も微小。
+  * 一方、*Aphananthe* や *Celtis* のように孤立した特徴を持つ属は安定分類が可能。
 
-#### まとめ
+### まとめ
 
 * **データ的に区別しやすい種は完全に識別可能**。
-* **近縁属（特に Quercus・Fagus）では誤分類が顕著**で、Top-5 には正解が入るものの Top-1 判定が困難。
-* **精度が偏在**していることから、学習データ拡充や近縁種に特化した表現学習が必要であることが読み取れる。
+* しかし **近縁属間（Quercus, Fagus）での誤分類は依然として課題**。
+* 完全識別可能な種と識別困難な種が二極化しており、学習データ拡充や近縁種特化の表現学習が精度向上の鍵となる。
 
 
 このように「完全に分類できる種」と「近縁種で混同する種」の両極が明確に現れており、**タスクの難易度（微細差判定の必要性）** が定量的に裏付けられています。
 
 
 ## 分類結果ギャラリー（正解例 / 誤分類例）
+
+`T`: True , `P`: Predict
 
 <details>
 <summary><b>正解例</b></summary>
@@ -125,6 +131,7 @@
 <img src="results/success_grid_29.png">
 <img src="results/success_grid_30.png">
 <img src="results/success_grid_31.png">
+<img src="results/success_grid_32.png">
 
 </details>
 

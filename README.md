@@ -135,25 +135,24 @@
 
 ### 分類の成功例と課題
 
+**分類結果の詳細（全部）については[こちら](Classification_Report.md)** <br>
+
 * **成功例**
 
   * *Aesculus turbinata*, *Aphananthe aspera*, *Castanea crenata*, *Celtis sinensis*, *Corylus sieboldiana* などでは **precision/recall/F1 = 1.0** と完全分類を達成。
-  * また、*Ostrya japonica*（F1≈0.99）、*Cinnamomum camphora*（F1≈0.96）、*Litsea coreana*（F1≈0.95）など、多くの主要樹種で高精度を示しました。
-
+  * また、*Ostrya japonica*（F1≈0.99）、*Cinnamomum camphora*（F1≈0.95）、*Litsea coreana*（F1≈0.95）、*Quercus crispula*（F1≈0.95）など、多くの主要樹種で高精度を示しました。
 
 * **課題のある種**
 
-  * *Carpinus japonica*（F1≈0.31）、*Quercus acuta*（F1≈0.47）、*Quercus salicina*（F1≈0.47）など、一部の樹種で大きな誤分類が確認されました。
-  * 特に **ブナ科（Quercus 属）間** では同属内での取り違えが頻発し、混同行列でもその傾向が表れています。
-
+  * *Carpinus japonica*（F1≈0.31）、*Quercus acuta*（F1≈0.47）、*Quercus gilva*（F1≈0.45）、*Quercus variabilis*（F1≈0.36）など、一部の樹種で誤分類が目立ちました。
+  * 特に **ブナ科（Quercus 属）間** では同属内での取り違えが頻発し、混同行列でもその傾向が確認されます。
 
 <p align="center">
 <img src="results/confusion_matrix_norm_filtered.png"><br>
 <b>Fig. 2</b> テストデータセットにおける混同行列
 </p>
 
-さらに、成功例と失敗例の一部を可視化し、モデルの挙動を直感的に把握できるようにしました。<br>
-分類結果の詳細（全部）については[こちら](Classification_Report.md) <br>
+さらに、正解例と誤分類例の一部を可視化し、モデルの挙動を直感的に把握できるようにしました。<br>
 `T`: True , `P`: Predict
 
 * **正解例（一部）**
