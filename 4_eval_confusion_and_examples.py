@@ -141,7 +141,7 @@ def main():
     cm_norm = cm.astype(float) / np.maximum(cm.sum(1, keepdims=True), 1)
     fig, ax = plt.subplots(figsize=(max(10,len(kept_labels)*0.25), max(8,len(kept_labels)*0.25)))
     im = ax.imshow(cm_norm, interpolation="nearest", aspect="auto", cmap="Blues")
-    ax.set_title(f"Confusion Matrix (test_dataset) [min_support={MIN_SUPPORT}]")
+    ax.set_title(f"Confusion Matrix (test_dataset)")
     ax.set_xlabel("Predicted"); ax.set_ylabel("True")
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     ax.set_xticks(np.arange(len(kept_labels))); ax.set_yticks(np.arange(len(kept_labels)))
