@@ -111,27 +111,24 @@
   * Top-1 Accuracy: **0.981**
   * Top-5 Accuracy: **0.992**
 
-<br>
 
 * **検証精度**
   
   * Top-1 Accuracy: **0.724**
   * Top-5 Accuracy: **0.822**
 
-<br>
 
 * **テスト精度（TTAあり）**
 
   * Top-1 Accuracy: **0.798**
   * Top-5 Accuracy: **0.930**
-<br>
+
 
 <p align="center">
 <img src="results/training_tta_acc.png">
 <b>Fig. 1</b> 学習精度の履歴
 </p>
 
-<br>
 
 学習記録の詳細は[こちら](runs/history.json)
 
@@ -156,12 +153,22 @@
 
 さらに、成功例と失敗例の一部を可視化し、モデルの挙動を直感的に把握できるようにしました。
 
-| Success Example                        | Failure Example                        |
-| -------------------------------------- | -------------------------------------- |
-| <img src="results/success_grid_0.png"> | <img src="results/failure_grid_0.png"> |
+* **成功例**
 
+<p align="center">
+<img src="results/success_grid.png"><br>
+<b>Fig. 3</b> テストデータセットにおける分類成功例
+</p>
+
+* **失敗例**
+
+<p align="center">
+<img src="results/failure_grid.png"><br>
+<b>Fig. 4</b> テストデータセットにおける分類成功例
+</p>
 
 #### まとめ
+
 本モデルは **Top-1 精度 ≈ 0.80、Top-5 精度 ≈ 0.93** と高い分類性能を実現しました。一方で、同属種の識別には依然として課題が残されており、特に **Quercus 属の細分類**やサンプル数の少ないクラスでの改善が今後の焦点となります。また、汎化性能についても今後の課題です。
 
 分類結果の詳細については[こちら](Classification_Report.md)
