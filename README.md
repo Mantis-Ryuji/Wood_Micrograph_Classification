@@ -135,7 +135,7 @@
 
 ### 分類の成功例と課題
 
-**分類結果の詳細（全部）については[こちら](Classification_Report.md)** <br>
+**分類結果の詳細については[こちら](Classification_Report.md)** <br>
 
 * **成功例**
 
