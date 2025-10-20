@@ -12,9 +12,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# -------------------------
-# Metrics
-# -------------------------
 def accuracy_topk(logits: torch.Tensor, target: torch.Tensor, topk: Sequence[int] = (1,)) -> Tuple[float, ...]:
     """Return tuple of top-k accuracies."""
     with torch.no_grad():
@@ -30,9 +27,7 @@ def accuracy_topk(logits: torch.Tensor, target: torch.Tensor, topk: Sequence[int
         return tuple(res)
 
 
-# -------------------------
-# Losses
-# -------------------------
+
 class FocalLoss(nn.Module):
     """
     Focal Loss (multi-class).
@@ -66,9 +61,6 @@ class FocalLoss(nn.Module):
             return loss
 
 
-# -------------------------
-# EMA
-# -------------------------
 class ModelEMA:
     """Exponential Moving Average of model parameters/buffers."""
     def __init__(self, model: nn.Module, decay: float = 0.999):
@@ -91,9 +83,6 @@ class ModelEMA:
         return self
 
 
-# -------------------------
-# EarlyStop helper
-# -------------------------
 @dataclass
 class EarlyStop:
     best: Optional[float] = None
@@ -101,9 +90,7 @@ class EarlyStop:
     counter: int = 0
 
 
-# -------------------------
-# Trainer
-# -------------------------
+
 class Trainer:
     def __init__(
         self,

@@ -15,9 +15,7 @@ from src.config_utils import load_config
 from src.data_pipeline import build_dataloaders
 from src.model import FaceWoodNet
 
-# =========================
-# 設定
-# =========================
+
 USE_TTA = True
 IMAGES_DIR = Path("results")
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
@@ -25,9 +23,7 @@ IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 MIN_SUPPORT = 5          # 少数クラス除外
 PAGE_SIZE  = 16          # 4×4 固定（全件をページ分割表示）
 
-# =========================
-# 軽量TTA（2_eval_best.py と同一ポリシー：6-view）
-# =========================
+
 @torch.no_grad()
 def forward_tta(model: torch.nn.Module, x: torch.Tensor) -> torch.Tensor:
     """
@@ -62,9 +58,7 @@ class IndexedDataset(Dataset):
         x, y = self.base[i]
         return x, y, i
 
-# =========================
-# メイン
-# =========================
+
 def main():
     cfg = load_config("config.yaml")
     set_global_seeds(cfg["SEED"])

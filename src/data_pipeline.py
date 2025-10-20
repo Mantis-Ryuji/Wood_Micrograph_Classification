@@ -12,9 +12,6 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 
 
-# =========================================================
-# ユーティリティ
-# =========================================================
 def build_label_map(df: pd.DataFrame) -> Dict[str, int]:
     # species のみを使用
     uniq = sorted(df["species"].unique())
@@ -42,9 +39,6 @@ def expand_split(split_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# =========================================================
-# picklable 変換（lambda 不使用）
-# =========================================================
 class RepeatTo3(nn.Module):
     """[1,H,W] -> [3,H,W] を repeat で実現"""
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -194,9 +188,6 @@ class EvalTransform(nn.Module):
         return self.ops(x)
 
 
-# =========================================================
-# Dataset
-# =========================================================
 class WoodH5(Dataset):
     """
     HDF5:
@@ -274,10 +265,6 @@ class WoodH5(Dataset):
         except Exception:
             pass
 
-
-# =========================================================
-# Sampler（クラス不均衡対策）
-# =========================================================
 def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: float = 0.25) -> WeightedRandomSampler:
     """
     alpha=1.0 → 完全バランス (1 / count)
@@ -297,9 +284,6 @@ def make_balanced_sampler(df_img: pd.DataFrame, spe2id: Dict[str, int], alpha: f
     return WeightedRandomSampler(weights=w_t, num_samples=len(w), replacement=True)
 
 
-# =========================================================
-# スプリット
-# =========================================================
 def split_by_individual_stratified(
     df: pd.DataFrame,
     ratios=(0.8, 0.1, 0.1),
@@ -412,9 +396,7 @@ def split_by_individual_stratified(
     return train_df, val_df, test_df
 
 
-# =========================================================
-# DataLoader エントリポイント
-# =========================================================
+
 def build_dataloaders(
     h5_path: str,
     csv_path: str,
